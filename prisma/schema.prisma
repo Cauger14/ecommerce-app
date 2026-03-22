@@ -15,16 +15,119 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Post {
+model Product {
   id        String   @id @default(cuid())
-  name      String
+  name      String   @db.Text
+  description String @db.Text
+  price Decimal      @db.Decimal(10, 2)
+  stock Int          @default(0)
+  image     String   @db.Text
+  
+  categoryId String
+  category Category @relation(fields: [categoryId], references: [id])
+
+  cartItems CartItem[]
+  orderItems OrderItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   createdBy   User   @relation(fields: [createdById], references: [id])
   createdById String
 
-  @@index([name])
+  @@index([categoryId])
+  @@index([createdById])
+  @@map("product")
+}
+
+// ===== PANIER =====
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  items     CartItem[] 
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("cart")
+}
+
+// ===== ITEMS DU PANIER =====
+model CartItem {
+  id        String  @id @default(cuid())
+  quantity  Int     @default(1)
+  
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([cartId, productId]) 
+  @@map("cart_item")
+}
+
+// ===== COMMANDES =====
+model Order {
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique              // Ex: "ORD-2024-001"
+  
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  totalPrice    Decimal  @db.Decimal(10, 2)  // Prix total
+  status        OrderStatus @default(PENDING) // PENDING, SHIPPED, DELIVERED
+  
+  items         OrderItem[]  // La commande contient plusieurs items
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([userId])
+  @@map("order")
+}
+
+// ===== ITEMS DE COMMANDE =====
+model OrderItem {
+  id        String  @id @default(cuid())
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)  // Prix au moment de l'achat
+  
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  
+  createdAt DateTime @default(now())
+  
+  @@map("order_item")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique                   
+  description String?   @db.Text
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]  // Une catégorie a plusieurs produits
+
+  @@map("category")
+}
+
+// ===== ENUM POUR LES STATUTS =====
+enum OrderStatus {
+  PENDING
+  SHIPPED
+  DELIVERED
+  CANCELLED
 }
 
 model User {
@@ -32,15 +135,24 @@ model User {
   name          String //@db.Text
   email         String
   emailVerified Boolean   @default(false)
+  role          Role @default(USER)
   image         String? //@db.Text
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
   sessions      Session[]
   accounts      Account[]
-  posts         Post[]
+  cart          Cart?
+  order         Order[]
+  product       Product[]
+  
 
   @@unique([email])
   @@map("user")
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 model Session {
