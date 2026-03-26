@@ -1,3 +1,4 @@
+// app/layout.tsx
 import "~/styles/globals.css";
 import Link from "next/link";
 import { type Metadata } from "next";
@@ -5,6 +6,7 @@ import { Geist } from "next/font/google";
 import { TRPCReactProvider } from "~/trpc/react";
 import { getSession } from "~/server/better-auth/server";
 import { SignOutButton } from "~/components/signout-button";
+import { SessionProvider } from "./providers";
 
 export const metadata: Metadata = {
   title: "E-Commerce",
@@ -29,7 +31,6 @@ export default async function RootLayout({
           <Link href="/" className="text-xl font-bold">
             E-Commerce
           </Link>
-
           <div className="flex items-center gap-4">
             {session ? (
               // Connecté
@@ -51,7 +52,6 @@ export default async function RootLayout({
                 <Link href="/orders" className="text-sm hover:underline">
                   Mes commandes
                 </Link>
-
                 <SignOutButton />
               </>
             ) : (
@@ -70,8 +70,9 @@ export default async function RootLayout({
             )}
           </div>
         </nav>
-
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <SessionProvider session={session}>
+          <TRPCReactProvider>{children}</TRPCReactProvider>
+        </SessionProvider>
       </body>
     </html>
   );

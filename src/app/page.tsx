@@ -1,11 +1,8 @@
 // app/page.tsx
 import { CardProduct } from "~/components/cardProduct";
-import { getSession } from "~/server/better-auth/server";
 import { api, HydrateClient } from "~/trpc/server";
 
 export default async function Home() {
-  const session = await getSession();
-  
   void api.product.getAll.prefetch();
 
   return (
